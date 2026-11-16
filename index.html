@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later — KasSigner test tool. See LICENSE; sdk/ is MPL-2.0. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' https: wss: ws://localhost:* ws://127.0.0.1:*; media-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<title>KasSigner — test tool for the air-gapped Kaspa signer</title>
+<link rel="icon" href="assets/kaspa-icon.png">
+<!-- One version on every file the page loads, carried by app/ui.js to the modules and the SDK's wasm:
+     changed with every deploy that changes any of them, so a browser's cache never pairs an old file
+     with a new one (2026-11-01). -->
+<link rel="stylesheet" href="kassigner.css?v=2026-11-16d">
+<link rel="stylesheet" href="app.css?v=2026-11-16d">
+<link rel="stylesheet" href="vendor/phosphor/icons.css?v=2026-11-16d">
+<script src="vendor/jsqr/jsQR.js?v=2026-11-16d"></script>
+<script type="module" src="app/ui.js?v=2026-11-16d"></script>
+</head>
+<body>
+
+<!-- The hosted copy's warning, there from the first paint and on every visit, since the site keeps
+     nothing to remember it by. A comment here; `make-hosted.sh` switches it on (2026-11-15). -->
+<div id="warn" class="warn" role="dialog" aria-modal="true" aria-labelledby="warnTitle">
+  <div class="warn-box">
+    <i class="ph ph-warning"></i>
+    <h2 id="warnTitle">A testing site, not a wallet</h2>
+    <p>This page is a test tool for KasSigner owners. It is <b>not a wallet</b> and comes with <b>no support</b>.</p>
+    <p class="warn-no">Here you cannot send KAS, fund a card or claim a card.</p>
+    <hr>
+    <p>A card made here is <b>real</b>: anyone can fund it from any wallet. To claim it, use the full tool or any SilverScript wallet.</p>
+    <p>The full tool is in its public repository, for you to build and run <b>at your own risk</b>.</p>
+    <button id="warnOk" class="btn" data-act="warnOk">I understand</button>
+    <small>Shown on every visit: this site keeps nothing in your browser.</small>
+  </div>
+</div>
+
+<section id="landing" class="landing">
+  <div class="glow"></div>
+  <div class="intro">
+    <img class="logo" src="assets/kassigner_logo.png" alt="KasSigner">
+    <h1>Trust yourself<br>Sign offline</h1>
+    <p class="lead">The test tool for KasSigner, the air-gapped Kaspa signer. Import your kpub to watch your addresses, make savings cards and check signed messages.</p>
+    <button class="btn btn-primary big" data-act="scan" data-arg="kpub" data-needs-sdk disabled><i class="ph ph-scan"></i>Scan account or vault QR</button>
+    <div class="or">or paste</div>
+    <label for="kpubText" class="sr">Account kpub or vault descriptor</label>
+    <textarea id="kpubText" class="input mono" placeholder="kpub… or multi_hd45(…) vault descriptor" rows="3" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+    <div id="importErr" class="err" hidden></div>
+    <div class="split">
+      <span class="tag tag-neutral">Mainnet</span>
+      <button class="btn btn-secondary" data-act="import" data-needs-sdk disabled><span id="openLabel">Explore without a wallet</span><i class="ph ph-arrow-right"></i></button>
+    </div>
+    <div class="note"><i class="ph ph-shield-check"></i>Watch-only by design — a kpub can derive addresses but can never spend.</div>
+    <div id="bootMsg" class="note"><i class="ph ph-circle-notch spin"></i>Loading the signing engine…</div>
+  </div>
+  <div class="showcase">
+    <div class="device-box"><div id="device"></div></div>
+    <nav class="socials" aria-label="KasSigner online">
+      <a href="https://x.com/KasSigner" target="_blank" rel="noopener noreferrer" title="X / Twitter"><i class="ph ph-x-logo"></i></a>
+      <a href="https://www.youtube.com/@KasSigner" target="_blank" rel="noopener noreferrer" title="YouTube"><i class="ph-fill ph-youtube-logo"></i></a>
+      <a href="https://github.com/InKasWeRust/KasSigner" target="_blank" rel="noopener noreferrer" title="GitHub"><span class="gh"></span></a>
+      <a href="https://t.me/KasSigner" target="_blank" rel="noopener noreferrer" title="Telegram"><i class="ph-fill ph-telegram-logo"></i></a>
+      <a href="https://kaspa.stream/" target="_blank" rel="noopener noreferrer" title="Kaspa Explorer"><img src="assets/kaspa-icon.png" alt="Kaspa"></a>
+    </nav>
+  </div>
+</section>
+
+<section id="shell" class="shell" hidden>
+  <div class="backdrop" data-act="rail"></div>
+  <nav class="rail">
+    <div class="rail-logo"><img src="assets/kassigner_logo.png" alt="KasSigner"><span id="railName" class="rail-label rail-name"></span></div>
+    <div id="railWallets" class="rail-wallets"></div>
+    <div id="railNav" class="rail-nav"></div>
+    <div class="rail-foot">
+      <div class="rail-socials">
+        <a href="https://x.com/KasSigner" target="_blank" rel="noopener noreferrer" title="X / Twitter"><i class="ph ph-x-logo"></i></a>
+        <a href="https://www.youtube.com/@KasSigner" target="_blank" rel="noopener noreferrer" title="YouTube"><i class="ph-fill ph-youtube-logo"></i></a>
+        <a href="https://github.com/InKasWeRust/KasSigner" target="_blank" rel="noopener noreferrer" title="GitHub"><span class="gh"></span></a>
+        <a href="https://t.me/KasSigner" target="_blank" rel="noopener noreferrer" title="Telegram"><i class="ph-fill ph-telegram-logo"></i></a>
+        <a href="https://kaspa.stream/" target="_blank" rel="noopener noreferrer" title="Kaspa Explorer"><img src="assets/kaspa-icon.png" alt="Kaspa"></a>
+      </div>
+      <button class="rail-btn" data-act="lock" title="Lock &amp; forget"><i class="ph ph-lock-simple"></i><span class="rail-label">Lock &amp; forget</span></button>
+      <button class="rail-btn" data-act="rail" title="Toggle sidebar"><i id="railIcon" class="ph ph-caret-double-right"></i><span class="rail-label">Collapse</span></button>
+    </div>
+  </nav>
+  <div class="spacer"></div>
+  <div class="body">
+    <aside id="subs" class="subs"></aside>
+    <main class="main"><div id="view" class="view"></div></main>
+  </div>
+</section>
+
+<section id="scanner" class="scanner" hidden>
+  <video id="video" muted playsinline></video>
+  <div class="scan-top"><span id="scanTitle"></span><button class="btn btn-secondary btn-icon" data-act="closeScan" title="Close"><i class="ph ph-x"></i></button></div>
+  <div class="scan-mid"><div class="scan-frame"><i class="c1"></i><i class="c2"></i><i class="c3"></i><i class="c4"></i><div class="sweep"></div></div><div id="scanDots" class="scan-dots" hidden></div></div>
+  <div class="scan-foot">
+    <div id="scanBar" class="bar" hidden><div id="scanFill"></div></div>
+    <div id="scanMsg"></div>
+    <div id="scanErr" class="err" hidden></div>
+    <button class="btn btn-secondary" data-act="closeScan">Stop camera</button>
+  </div>
+</section>
+
+<div id="book" class="book" hidden></div>
+<div id="toast" class="toast" hidden></div>
+</body>
+</html>
